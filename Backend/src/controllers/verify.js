@@ -1,6 +1,8 @@
 import { SelfBackendVerifier,DefaultConfigStore, AllIds, countries } from "@selfxyz/core";
 import "dotenv/config";
 
+import parseWalletFromPaddedHex from "../utils/utils.js";
+
 const ENDPOINT = process.env.ENDPOINT;
 
 const staticConfig = {
@@ -23,7 +25,9 @@ const selfBackendVerifier = new SelfBackendVerifier(
 
 export async function UserVerification(req, res){
 try {
+
     const { attestationId, proof, publicSignals, userContextData, actionId } = req.body
+    console.log("user id:", req.body.userContextData);
     if (!proof || !publicSignals || !attestationId || !userContextData) {
       return res.status(200).json({
         status: "error",
@@ -52,6 +56,9 @@ try {
     }
 
     // console.log("verification successful");
+
+    const address = parseWalletFromPaddedHex(userContextData);
+    console.log(address);
 
     return res.status(200).json({
       status: "success",
