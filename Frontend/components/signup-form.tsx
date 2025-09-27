@@ -53,7 +53,7 @@ function ParticleField() {
 }
 
 export default function SignupForm() {
-  const [address, setAddress] = useState<string>("")
+  const [account, setAccount] = useState<string | null>(null)
   const [status, setStatus] = useState<string>("")
   const [selfAuthDone, setSelfAuthDone] = useState<boolean>(false)
   const [isConnecting, setIsConnecting] = useState<boolean>(false)
@@ -64,49 +64,39 @@ export default function SignupForm() {
     setMounted(true)
   }, [])
 
-  const [account, setAccount] = useState<string | null>(null);
-
-  // Handle MetaMask account changes
+  // Listen for MetaMask account changes
   useEffect(() => {
     if (typeof window.ethereum !== "undefined") {
-      window.ethereum.on("accountsChanged", (accounts: string[]) => {
-        setAccount(accounts[0] || null);
-      });
-    }
-  }, []);
+      const handleAccountsChanged = (accounts: string[]) => {
+        setAccount(accounts[0] || null)
+      }
+      window.ethereum.on("accountsChanged", handleAccountsChanged)
 
-  // Connect button handler
+      return () => {
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged)
+      }
+    }
+  }, [])
+
   const connectWallet = async () => {
     if (typeof window.ethereum === "undefined") {
-      alert("MetaMask not detected");
-      return;
+      alert("MetaMask not detected")
+      return
     }
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const accounts = await provider.send("eth_requestAccounts", []);
-    setAccount(accounts[0]);
-  };
 
-  // const connectWallet = async (): Promise<void> => {
-  //   if (typeof window.ethereum === "undefined") {
-  //     setStatus("MetaMask not detected. Please install MetaMask to continue.")
-  //     return
-  //   }
-
-  //   setIsConnecting(true)
-  //   try {
-  //     const provider = new ethers.BrowserProvider(window.ethereum as any)
-  //     const [accounts, setAccounts] = useState<string[]>([])
-  //     const [selectedAddress, setSelectedAddress] = useState<string>("")
-  //     setAddress(accounts[0]);
-      
-  //     setStatus("Wallet connected successfully! ✨")
-  //   } catch (err) {
-  //     console.error(err)
-  //     setStatus("Failed to connect wallet. Please try again.")
-  //   } finally {
-  //     setIsConnecting(false)
-  //   }
-  // }
+    setIsConnecting(true)
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const accounts = await provider.send("eth_requestAccounts", [])
+      setAccount(accounts[0] || null)
+      setStatus("Wallet connected successfully! ✨")
+    } catch (err) {
+      console.error(err)
+      setStatus("Failed to connect wallet. Please try again.")
+    } finally {
+      setIsConnecting(false)
+    }
+  }
 
   const handleSelfAuth = (): void => {
     setSelfAuthDone(true)
@@ -114,7 +104,7 @@ export default function SignupForm() {
   }
 
   const handleSignup = (): void => {
-    if (!address) {
+    if (!account) {
       setStatus("⚠️ Please connect your MetaMask wallet first.")
       return
     }
@@ -122,7 +112,7 @@ export default function SignupForm() {
       setStatus("⚠️ Please complete identity verification.")
       return
     }
-    console.log("Signing up with:", { address, selfAuthDone })
+    console.log("Signing up with:", { account, selfAuthDone })
     setStatus("🎉 Welcome to DataVault! Redirecting to login...")
 
     setTimeout(() => {
@@ -132,7 +122,6 @@ export default function SignupForm() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden relative">
-      {/* 3D Background Scene - Only render on client */}
       {mounted && (
         <div className="fixed inset-0 z-0">
           <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
@@ -141,10 +130,9 @@ export default function SignupForm() {
         </div>
       )}
 
-      {/* Particle Field - Only render on client */}
       {mounted && <ParticleField />}
       
-      <SelfQR address={address ?? "No address"}/>
+      <SelfQR address={account ?? "0x0000000000000000000000000000000000000000"} />
       
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
         {/* Header */}
@@ -174,21 +162,21 @@ export default function SignupForm() {
             <div className="space-y-3">
               <Button
                 onClick={connectWallet}
-                disabled={isConnecting || !!address}
+                disabled={isConnecting || !!account}
                 className={`w-full py-4 text-base font-medium transition-all duration-300 ${
-                  address
+                  account
                     ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                     : "bg-primary hover:bg-primary/90 pulse-glow"
                 }`}
               >
                 <Wallet className="mr-3 w-5 h-5" />
-                {isConnecting ? "Connecting..." : address ? "Wallet Connected" : "Connect MetaMask"}
-                {address && <CheckCircle className="ml-3 w-5 h-5" />}
+                {isConnecting ? "Connecting..." : account ? "Wallet Connected" : "Connect MetaMask"}
+                {account && <CheckCircle className="ml-3 w-5 h-5" />}
               </Button>
 
-              {address && (
+              {account && (
                 <div className="glass p-3 rounded-lg border border-emerald-500/30">
-                  <p className="text-xs text-emerald-400 font-mono break-all">{address}</p>
+                  <p className="text-xs text-emerald-400 font-mono break-all">{account}</p>
                 </div>
               )}
             </div>
@@ -196,7 +184,7 @@ export default function SignupForm() {
             <div className="space-y-3">
               <Button
                 onClick={handleSelfAuth}
-                disabled={!address || selfAuthDone}
+                disabled={!account || selfAuthDone}
                 variant="secondary"
                 className={`w-full py-4 text-base font-medium transition-all duration-300 ${
                   selfAuthDone
@@ -212,7 +200,7 @@ export default function SignupForm() {
 
             <Button
               onClick={handleSignup}
-              disabled={!address || !selfAuthDone}
+              disabled={!account || !selfAuthDone}
               className="w-full py-4 text-base font-semibold bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 transition-all duration-300 pulse-glow"
             >
               <Zap className="mr-3 w-5 h-5" />

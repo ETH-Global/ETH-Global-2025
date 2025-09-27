@@ -16,5 +16,5 @@ app.use("", require("./routes/Routes"));
 
 app.listen(PORT, (error) => {
   if (error) throw error;
-  console.log("server starts at ::", PORT); 
+  console.log("server starts at ::", PORT);
 });

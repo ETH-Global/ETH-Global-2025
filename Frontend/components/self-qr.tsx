@@ -30,7 +30,6 @@ interface Attestation {
   verified: boolean;
   [key: string]: unknown; // fallback for extra fields
 }
-
 const ENDPOINT = "https://insuperably-available-karren.ngrok-free.dev/verify";
 // const ENDPOINT = "";
 type VerificationPageProps = {
@@ -41,21 +40,49 @@ export default function VerificationPage({ address }: VerificationPageProps) {
   const [selfApp, setSelfApp] = useState<any>(null);
 
   // 2. This effect runs once to build the verification configuration
-  useEffect(() => {
-    // This should be a unique identifier for the user you are verifying
-    const uniqueUserId = address|| "0x0000000000000000000000000000000000000000";
+  // useEffect(() => {
+  //   // This should be a unique identifier for the user you are verifying
+  //   const uniqueUserId = address;
 
-    // Use the builder to define all your app's and user's specifications
-    const appConfig = new SelfAppBuilder({
+  //   // Use the builder to define all your app's and user's specifications
+  //   const appConfig = new SelfAppBuilder({
+  //     version: 2,
+  //     appName: "My Basic Verification App",
+  //     scope: "scope", // must match backend
+  //     userId: uniqueUserId, // same on both sides
+  //     userIdType: "hex", // must match backend
+  //     endpoint: ENDPOINT, // your backend endpoint
+  //   //   AllIds: AllIds,
+  //     logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",
+  //     // -- Define the "required specs of user" here --
+  //     disclosures: {
+  //       minimumAge: 15,
+  //       excludedCountries: [countries.PAKISTAN],
+  //       nationality: true,
+  //       gender: true,
+  //     },
+  //   }).build();
+
+  //   // Store the final configuration in our state
+  //   setSelfApp(appConfig);
+  // }, []); // runs once when mounted
+
+  useEffect(() => {
+  if (!address) {
+    setSelfApp(null);
+    return;
+  }
+
+  try {
+    // Build the QR code configuration dynamically based on the current address
+    const appConfig: SelfAppConfig = new SelfAppBuilder({
       version: 2,
       appName: "My Basic Verification App",
-      scope: "scope", // must match backend
-      userId: uniqueUserId, // same on both sides
-      userIdType: "hex", // must match backend
-      endpoint: ENDPOINT, // your backend endpoint
-    //   AllIds: AllIds,
+      scope: "scope",
+      userId: address,       // use the latest address
+      userIdType: "hex",
+      endpoint: ENDPOINT,
       logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",
-      // -- Define the "required specs of user" here --
       disclosures: {
         minimumAge: 15,
         excludedCountries: [countries.PAKISTAN],
@@ -64,9 +91,12 @@ export default function VerificationPage({ address }: VerificationPageProps) {
       },
     }).build();
 
-    // Store the final configuration in our state
-    setSelfApp(appConfig);
-  }, []); // runs once when mounted
+      setSelfApp(appConfig);
+    } catch (err) {
+      console.error("Failed to build SelfApp config:", err);
+      setSelfApp(null);
+    }
+  }, [address]);
 
   // 3. This function is called ONLY on successful verification
   const handleSuccessfulVerification = (attestation: Attestation) => {
