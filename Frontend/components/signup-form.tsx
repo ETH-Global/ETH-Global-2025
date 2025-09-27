@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Database, Shield, CheckCircle, Wallet, Zap, ArrowLeft } from "lucide-react"
+import SelfQR from "@/components/self-qr";
 import { useRouter } from "next/navigation"
 
 const Canvas = dynamic(() => import("@react-three/fiber").then((mod) => mod.Canvas), {
@@ -118,6 +119,8 @@ export default function SignupForm() {
 
       {/* Particle Field - Only render on client */}
       {mounted && <ParticleField />}
+      
+      <SelfQR />
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
         {/* Header */}
