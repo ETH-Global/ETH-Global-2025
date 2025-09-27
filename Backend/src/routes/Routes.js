@@ -38,7 +38,12 @@ router.get("/lighthouse/:hash/website-uids", cronController.getWebsiteUids);
 router.get("/health", cronController.healthCheck);
 
 router.post("/verify", (req, res) => {
-    kyc.UserVerification(req, res);
+    const wallet = kyc.UserVerification(req, res);
+    console.log(wallet);
+    return res.status(200).json({
+      status: "success",
+      result: true,
+    })
 });
 
 module.exports = router;

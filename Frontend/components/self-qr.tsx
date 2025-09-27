@@ -5,7 +5,8 @@ import {
   countries,
 } from "@selfxyz/qrcode";
 import "dotenv/config";
-import {SelfQRcodeWrapper} from "@selfxyz/qrcode"
+import SelfQRcodeWrapper from "@selfxyz/qrcode"
+
 // ✅ Types
 interface SelfAppConfig {
   version: number;
@@ -21,6 +22,7 @@ interface SelfAppConfig {
     excludedCountries: string[];
     nationality: boolean;
     gender: boolean;
+    ofac:true;
   };
 }
 
@@ -30,7 +32,7 @@ interface Attestation {
   verified: boolean;
   [key: string]: unknown; // fallback for extra fields
 }
-const ENDPOINT = "https://insuperably-available-karren.ngrok-free.dev/verify";
+const ENDPOINT = process.env.ENDPOINT+"/verify";
 // const ENDPOINT = "";
 type VerificationPageProps = {
   address: string
@@ -40,32 +42,7 @@ export default function VerificationPage({ address }: VerificationPageProps) {
   const [selfApp, setSelfApp] = useState<any>(null);
 
   // 2. This effect runs once to build the verification configuration
-  // useEffect(() => {
-  //   // This should be a unique identifier for the user you are verifying
-  //   const uniqueUserId = address;
 
-  //   // Use the builder to define all your app's and user's specifications
-  //   const appConfig = new SelfAppBuilder({
-  //     version: 2,
-  //     appName: "My Basic Verification App",
-  //     scope: "scope", // must match backend
-  //     userId: uniqueUserId, // same on both sides
-  //     userIdType: "hex", // must match backend
-  //     endpoint: ENDPOINT, // your backend endpoint
-  //   //   AllIds: AllIds,
-  //     logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",
-  //     // -- Define the "required specs of user" here --
-  //     disclosures: {
-  //       minimumAge: 15,
-  //       excludedCountries: [countries.PAKISTAN],
-  //       nationality: true,
-  //       gender: true,
-  //     },
-  //   }).build();
-
-  //   // Store the final configuration in our state
-  //   setSelfApp(appConfig);
-  // }, []); // runs once when mounted
 
   useEffect(() => {
   if (!address) {
@@ -109,7 +86,6 @@ export default function VerificationPage({ address }: VerificationPageProps) {
   const handleFailedVerification = () => {
     console.log("❌ Verification Failed!");
     alert("Verification failed. Please try again.");
-
   };
 
   return (

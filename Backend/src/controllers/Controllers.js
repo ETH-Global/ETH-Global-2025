@@ -31,6 +31,8 @@ async function CleansObj(req, res) {
             return res.status(500).json({ error: 'Supabase Database insertion failed' });
         }
 
+        console.log(data2)
+
         // storing data into buffer - find existing buffer or create new one
         let data3;
         let err;

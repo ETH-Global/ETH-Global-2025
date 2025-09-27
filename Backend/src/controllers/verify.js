@@ -1,33 +1,37 @@
-import { SelfBackendVerifier,DefaultConfigStore, AllIds, countries } from "@selfxyz/core";
-import "dotenv/config";
+import { SelfBackendVerifier,DefaultConfigStore, AllIds, countries } from "@selfxyz/core"
+// require('dotenv').config()
+import dotenv from 'dotenv';
+dotenv.config();
 
+const ENDPOINT = process.env.ENDPOINT; //replace with your endpoint
+// const ENDPOINT = process.env.ENDPOINT;
 import parseWalletFromPaddedHex from "../utils/utils.js";
-
-const ENDPOINT = process.env.ENDPOINT;
 
 const staticConfig = {
   minimumAge: 15,
   excludedCountries: [countries.PAKISTAN],
   nationality: true,
+  ofac:true,
   gender: true,
+  ofac:true
 };
 
 const defaultConfigStore = new DefaultConfigStore(staticConfig);
 
 const selfBackendVerifier = new SelfBackendVerifier(
-  "scope",   
-  ENDPOINT,    
-  false,        
+  "scope",
+  ENDPOINT,
+  false,
   AllIds,
   defaultConfigStore,
-  "hex",       
+  "hex"
 );
+
 
 export async function UserVerification(req, res){
 try {
-
     const { attestationId, proof, publicSignals, userContextData, actionId } = req.body
-    console.log("user id:", req.body.userContextData);
+    // console.log(req.body);
     if (!proof || !publicSignals || !attestationId || !userContextData) {
       return res.status(200).json({
         status: "error",
@@ -55,19 +59,18 @@ try {
       })
     }
 
-    // console.log("verification successful");
+    console.log("verification successful");
+    const wallet = parseWalletFromPaddedHex(userContextData); //add this to db
 
-    const address = parseWalletFromPaddedHex(userContextData);
-    console.log(address);
-
-    return res.status(200).json({
-      status: "success",
-      result: true,
-    })
+    // return res.status(200).json({
+    //   status: "success",
+    //   result: true,
+    // })
+    return wallet
 
   } catch (error) {
     return res.status(200).json({
-        
+
         status: "error",
         result: false,
         reason: error instanceof Error ? error.message : "Unknown error",
