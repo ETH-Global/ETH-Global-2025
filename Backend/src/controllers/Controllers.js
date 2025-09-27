@@ -1,0 +1,4 @@
+require("dotenv").config();
+const bcrypt = require('bcrypt');
+
+module.exports={}
