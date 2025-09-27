@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+      <body >
         <Suspense fallback={<div>Loading...</div>}>
           <WalletProvider>{children}</WalletProvider>
         </Suspense>

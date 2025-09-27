@@ -1,6 +1,9 @@
 import { SelfBackendVerifier,DefaultConfigStore, AllIds, countries } from "@selfxyz/core"
+// require('dotenv').config()
+import dotenv from 'dotenv';
+dotenv.config();
 
-const ENDPOINT = "https://insuperably-available-karren.ngrok-free.dev/verify"; //replace with your endpoint
+const ENDPOINT = process.env.ENDPOINT; //replace with your endpoint
 // const ENDPOINT = process.env.ENDPOINT;
 import parseWalletFromPaddedHex from "../utils/utils.js";
 
@@ -16,12 +19,12 @@ const staticConfig = {
 const defaultConfigStore = new DefaultConfigStore(staticConfig);
 
 const selfBackendVerifier = new SelfBackendVerifier(
-  "scope",   
-  ENDPOINT,    
-  false,        
+  "scope",
+  ENDPOINT,
+  false,
   AllIds,
   defaultConfigStore,
-  "hex"              
+  "hex"
 );
 
 
@@ -57,16 +60,17 @@ try {
     }
 
     console.log("verification successful");
-    console.log(parseWalletFromPaddedHex(userContextData)); //add this to db
+    const wallet = parseWalletFromPaddedHex(userContextData); //add this to db
 
-    return res.status(200).json({
-      status: "success",
-      result: true,
-    })
+    // return res.status(200).json({
+    //   status: "success",
+    //   result: true,
+    // })
+    return wallet
 
   } catch (error) {
     return res.status(200).json({
-        
+
         status: "error",
         result: false,
         reason: error instanceof Error ? error.message : "Unknown error",
