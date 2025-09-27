@@ -31,9 +31,9 @@ export function Header() {
           <a href="/search" className="text-muted-foreground hover:text-foreground transition-colors">
             Search your product
           </a>
-          <a href="/register" className="text-muted-foreground hover:text-foreground transition-colors">
+          {/* <a href="/register" className="text-muted-foreground hover:text-foreground transition-colors">
             Tender registeration form
-          </a>
+          </a> */}
         </nav>
 
         {/* Wallet + Mobile menu */}
