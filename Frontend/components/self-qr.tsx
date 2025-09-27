@@ -1,12 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  SelfQRcodeWrapper,
   SelfAppBuilder,
   countries,
 } from "@selfxyz/qrcode";
 import "dotenv/config";
-
+import SelfQRcodeWrapper from "@selfxyz/qrcode"
 // ✅ Types
 interface SelfAppConfig {
   version: number;
@@ -34,15 +33,17 @@ interface Attestation {
 
 const ENDPOINT = "https://insuperably-available-karren.ngrok-free.dev/verify";
 // const ENDPOINT = "";
-
-export default function VerificationPage() {
+type VerificationPageProps = {
+  address: string
+}
+export default function VerificationPage({ address }: VerificationPageProps) {
   // 1. State to hold the configuration object for the QR code
   const [selfApp, setSelfApp] = useState<any>(null);
 
   // 2. This effect runs once to build the verification configuration
   useEffect(() => {
     // This should be a unique identifier for the user you are verifying
-    const uniqueUserId = "0xe64892497Fb8e99829D5fCaF106d14eF17e15e5c";
+    const uniqueUserId = address|| "0x0000000000000000000000000000000000000000";
 
     // Use the builder to define all your app's and user's specifications
     const appConfig = new SelfAppBuilder({

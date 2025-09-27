@@ -64,25 +64,49 @@ export default function SignupForm() {
     setMounted(true)
   }, [])
 
-  const connectWallet = async (): Promise<void> => {
-    if (typeof window.ethereum === "undefined") {
-      setStatus("MetaMask not detected. Please install MetaMask to continue.")
-      return
-    }
+  const [account, setAccount] = useState<string | null>(null);
 
-    setIsConnecting(true)
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum as any)
-      const accounts: string[] = await provider.send("eth_requestAccounts", [])
-      setAddress(accounts[0])
-      setStatus("Wallet connected successfully! ✨")
-    } catch (err) {
-      console.error(err)
-      setStatus("Failed to connect wallet. Please try again.")
-    } finally {
-      setIsConnecting(false)
+  // Handle MetaMask account changes
+  useEffect(() => {
+    if (typeof window.ethereum !== "undefined") {
+      window.ethereum.on("accountsChanged", (accounts: string[]) => {
+        setAccount(accounts[0] || null);
+      });
     }
-  }
+  }, []);
+
+  // Connect button handler
+  const connectWallet = async () => {
+    if (typeof window.ethereum === "undefined") {
+      alert("MetaMask not detected");
+      return;
+    }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.send("eth_requestAccounts", []);
+    setAccount(accounts[0]);
+  };
+
+  // const connectWallet = async (): Promise<void> => {
+  //   if (typeof window.ethereum === "undefined") {
+  //     setStatus("MetaMask not detected. Please install MetaMask to continue.")
+  //     return
+  //   }
+
+  //   setIsConnecting(true)
+  //   try {
+  //     const provider = new ethers.BrowserProvider(window.ethereum as any)
+  //     const [accounts, setAccounts] = useState<string[]>([])
+  //     const [selectedAddress, setSelectedAddress] = useState<string>("")
+  //     setAddress(accounts[0]);
+      
+  //     setStatus("Wallet connected successfully! ✨")
+  //   } catch (err) {
+  //     console.error(err)
+  //     setStatus("Failed to connect wallet. Please try again.")
+  //   } finally {
+  //     setIsConnecting(false)
+  //   }
+  // }
 
   const handleSelfAuth = (): void => {
     setSelfAuthDone(true)
@@ -120,8 +144,8 @@ export default function SignupForm() {
       {/* Particle Field - Only render on client */}
       {mounted && <ParticleField />}
       
-      <SelfQR />
-
+      <SelfQR address={address ?? "No address"}/>
+      
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
         {/* Header */}
         <div className="text-center mb-8">
