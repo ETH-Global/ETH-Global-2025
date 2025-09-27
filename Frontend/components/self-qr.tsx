@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  SelfQRcodeWrapper,
+  
   SelfAppBuilder,
   countries,
 } from "@selfxyz/qrcode";
 import "dotenv/config";
+
+import SelfQRcodeWrapper from "@selfxyz/qrcode"
 
 // ✅ Types
 interface SelfAppConfig {

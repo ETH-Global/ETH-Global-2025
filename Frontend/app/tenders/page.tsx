@@ -243,19 +243,6 @@ export default function TendersPage() {
                       </div>
                     </div>
 
-                    {tender.requirements.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium mb-2">Requirements:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {tender.requirements.map((req, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {req}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     <div className="flex space-x-2 pt-4 border-t border-border/50">
                       <Button
                         onClick={() => handleAccept(tender.id)}

@@ -1,26 +1,18 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
+import { ethers } from "ethers"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Plus, X, Building2, Clock, DollarSign, FileText, Star } from "lucide-react"
+import { Building2, Clock, DollarSign, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-export interface Tender {
-  id: string
-  name: string
-  time: string
-  rate: string
-  description: string
-  keyFeatures: string[]
-  createdAt: string
-}
+// ✅ ABI + Contract Address (replace with your deployed values)
+import TenderABI from "@/abi/New_final_TenderV2.json"
+const CONTRACT_ADDRESS = "0xYourDeployedContractAddress"
 
 export function TenderRegistrationForm() {
   const { toast } = useToast()
@@ -29,59 +21,62 @@ export function TenderRegistrationForm() {
     time: "",
     rate: "",
     description: "",
+    fee: "", // ✅ new field for ETH payment
     keyFeatures: [] as string[],
   })
-  const [newFeature, setNewFeature] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const addKeyFeature = () => {
-    if (newFeature.trim() && !formData.keyFeatures.includes(newFeature.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        keyFeatures: [...prev.keyFeatures, newFeature.trim()],
-      }))
-      setNewFeature("")
-    }
-  }
-
-  const removeKeyFeature = (feature: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      keyFeatures: prev.keyFeatures.filter((f) => f !== feature),
-    }))
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
-      const newTender: Tender = {
-        id: Date.now().toString(),
-        ...formData,
-        createdAt: new Date().toISOString(),
+      if (!(window as any).ethereum) {
+        throw new Error("MetaMask not detected")
       }
 
-      const existingTenders = JSON.parse(localStorage.getItem("tenders") || "[]")
-      const updatedTenders = [...existingTenders, newTender]
-      localStorage.setItem("tenders", JSON.stringify(updatedTenders))
+      // ✅ Connect to MetaMask
+      const provider = new ethers.BrowserProvider((window as any).ethereum)
+      const signer = await provider.getSigner()
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, TenderABI, signer)
 
+      if (!formData.fee || Number(formData.fee) <= 0) {
+        throw new Error("Please enter a valid ETH fee")
+      }
+
+      // 🔑 Call createTender with ETH payment
+      const tx = await contract.createTender(
+        formData.name,
+        formData.time,
+        formData.rate,
+        formData.description,
+        formData.keyFeatures,
+        {
+          value: ethers.parseEther(formData.fee), // ✅ send ETH to contract
+        }
+      )
+
+      await tx.wait()
+
+      // Reset form
       setFormData({
         name: "",
         time: "",
         rate: "",
         description: "",
+        fee: "",
         keyFeatures: [],
       })
 
       toast({
         title: "Tender Registered Successfully",
-        description: "Your tender has been added to the system.",
+        description: `Transaction Hash: ${tx.hash}`,
       })
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error)
       toast({
         title: "Error",
-        description: "Failed to register tender. Please try again.",
+        description: error.message || "Transaction failed",
         variant: "destructive",
       })
     } finally {
@@ -92,13 +87,13 @@ export function TenderRegistrationForm() {
   return (
     <div className="max-w-2xl mx-auto animate-fadeIn">
       <Card className="border-border bg-card backdrop-blur-md shadow-lg">
-        <CardHeader className="space-y-1">
+        <CardHeader>
           <CardTitle className="text-2xl font-bold flex items-center space-x-2 text-primary">
             <Building2 className="h-6 w-6 text-primary" />
             <span>Register New Tender</span>
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Fill out the form below to register a new tender opportunity
+          <CardDescription>
+            Fill out the form below to register a new tender opportunity and pay the fee
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -114,13 +109,12 @@ export function TenderRegistrationForm() {
                 type="text"
                 placeholder="Enter tender name"
                 value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="bg-background border-border focus:border-primary focus:ring-primary/30"
               />
             </div>
 
-            {/* Time and Rate */}
+            {/* Duration & Rate */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="time" className="flex items-center space-x-2 text-sm font-medium">
@@ -132,9 +126,8 @@ export function TenderRegistrationForm() {
                   type="text"
                   placeholder="e.g., 30 days, 3 months"
                   value={formData.time}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, time: e.target.value }))}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                   required
-                  className="bg-background border-border focus:border-primary focus:ring-primary/30"
                 />
               </div>
               <div className="space-y-2">
@@ -145,13 +138,29 @@ export function TenderRegistrationForm() {
                 <Input
                   id="rate"
                   type="text"
-                  placeholder="e.g., $50,000 - $100,000"
+                  placeholder="e.g., $50,000"
                   value={formData.rate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, rate: e.target.value }))}
+                  onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
                   required
-                  className="bg-background border-border focus:border-primary focus:ring-primary/30"
                 />
               </div>
+            </div>
+
+            {/* Tender Fee (ETH) */}
+            <div className="space-y-2">
+              <Label htmlFor="fee" className="flex items-center space-x-2 text-sm font-medium">
+                <DollarSign className="h-4 w-4 text-primary" />
+                <span>Tender Fee (ETH)</span>
+              </Label>
+              <Input
+                id="fee"
+                type="number"
+                step="0.01"
+                placeholder="e.g., 0.05"
+                value={formData.fee}
+                onChange={(e) => setFormData({ ...formData, fee: e.target.value })}
+                required
+              />
             </div>
 
             {/* Description */}
@@ -163,68 +172,16 @@ export function TenderRegistrationForm() {
                 id="description"
                 placeholder="Provide a detailed description of the tender requirements..."
                 value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
                 rows={4}
-                className="bg-background border-border focus:border-primary focus:ring-primary/30 resize-none"
+                className="resize-none"
               />
             </div>
 
-            {/* Key Features */}
-            <div className="space-y-3">
-              <Label className="flex items-center space-x-2 text-sm font-medium">
-                <Star className="h-4 w-4 text-primary" />
-                <span>Key Features</span>
-              </Label>
-
-              <div className="flex space-x-2">
-                <Input
-                  type="text"
-                  placeholder="Add a key feature"
-                  value={newFeature}
-                  onChange={(e) => setNewFeature(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyFeature())}
-                  className="bg-background border-border focus:border-primary focus:ring-primary/30"
-                />
-                <Button
-                  type="button"
-                  onClick={addKeyFeature}
-                  size="sm"
-                  className="bg-primary text-primary-foreground hover:opacity-90 pulse-glow"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {formData.keyFeatures.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {formData.keyFeatures.map((feature, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="bg-secondary text-secondary-foreground flex items-center space-x-1"
-                    >
-                      <span>{feature}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeKeyFeature(feature)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-primary text-primary-foreground hover:opacity-90 font-medium py-2.5"
-            >
-              {isSubmitting ? "Registering..." : "Register Tender"}
+            {/* Submit */}
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? "Registering..." : "Register Tender & Pay"}
             </Button>
           </form>
         </CardContent>
