@@ -1,6 +1,8 @@
 import { SelfBackendVerifier,DefaultConfigStore, AllIds, countries } from "@selfxyz/core";
 import "dotenv/config";
 
+import parseWalletFromPaddedHex from "../utils/utils.js";
+
 const ENDPOINT = process.env.ENDPOINT;
 
 const staticConfig = {
@@ -54,6 +56,9 @@ try {
     }
 
     // console.log("verification successful");
+
+    const address = parseWalletFromPaddedHex(userContextData);
+    console.log(address);
 
     return res.status(200).json({
       status: "success",
