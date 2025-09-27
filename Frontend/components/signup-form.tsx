@@ -61,8 +61,28 @@ export default function SignupForm() {
   const router = useRouter()
 
   useEffect(() => {
-    setMounted(true)
+  setMounted(true)
+
+  if (typeof window.ethereum !== "undefined") {
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length > 0) {
+        setAddress(accounts[0])
+        setStatus("🔄 Wallet account changed.")
+      } else {
+        setAddress("")
+        setStatus("⚠️ MetaMask is locked or no accounts are connected.")
+      }
+    }
+
+      window.ethereum.on("accountsChanged", handleAccountsChanged)
+
+      // Cleanup on unmount
+      return () => {
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged)
+      }
+    }
   }, [])
+
 
   const connectWallet = async (): Promise<void> => {
     if (typeof window.ethereum === "undefined") {
@@ -120,7 +140,8 @@ export default function SignupForm() {
       {/* Particle Field - Only render on client */}
       {mounted && <ParticleField />}
       
-      <SelfQR />
+      <SelfQR address={address??"0x0000000000000000000000000000000000000000"} />
+
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
         {/* Header */}

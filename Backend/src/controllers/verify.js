@@ -1,15 +1,16 @@
-import { SelfBackendVerifier,DefaultConfigStore, AllIds, countries } from "@selfxyz/core";
-import "dotenv/config";
+import { SelfBackendVerifier,DefaultConfigStore, AllIds, countries } from "@selfxyz/core"
 
+const ENDPOINT = "https://insuperably-available-karren.ngrok-free.dev/verify"; //replace with your endpoint
+// const ENDPOINT = process.env.ENDPOINT;
 import parseWalletFromPaddedHex from "../utils/utils.js";
-
-const ENDPOINT = process.env.ENDPOINT;
 
 const staticConfig = {
   minimumAge: 15,
   excludedCountries: [countries.PAKISTAN],
   nationality: true,
+  ofac:true,
   gender: true,
+  ofac:true
 };
 
 const defaultConfigStore = new DefaultConfigStore(staticConfig);
@@ -20,14 +21,14 @@ const selfBackendVerifier = new SelfBackendVerifier(
   false,        
   AllIds,
   defaultConfigStore,
-  "hex",       
+  "hex"              
 );
+
 
 export async function UserVerification(req, res){
 try {
-
     const { attestationId, proof, publicSignals, userContextData, actionId } = req.body
-    console.log("user id:", req.body.userContextData);
+    // console.log(req.body);
     if (!proof || !publicSignals || !attestationId || !userContextData) {
       return res.status(200).json({
         status: "error",
@@ -55,10 +56,8 @@ try {
       })
     }
 
-    // console.log("verification successful");
-
-    const address = parseWalletFromPaddedHex(userContextData);
-    console.log(address);
+    console.log("verification successful");
+    console.log(parseWalletFromPaddedHex(userContextData)); //add this to db
 
     return res.status(200).json({
       status: "success",
