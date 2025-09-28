@@ -60,9 +60,11 @@ export default function SignupForm() {
   const [mounted, setMounted] = useState(false)
   const [showQR, setShowQR] = useState(false);
   const router = useRouter()
+  window.ethereum.autoRefreshOnNetworkChange = false
 
   useEffect(() => {
-  setMounted(true)
+    setMounted(true)
+
 
   if (typeof window.ethereum !== "undefined") {
     const handleAccountsChanged = (accounts: string[]) => {
@@ -172,21 +174,6 @@ export default function SignupForm() {
             </div>
 
     <div className="space-y-3">
-      <Button
-        onClick={handleSelfAuth}
-        disabled={!address || selfAuthDone}
-        variant="secondary"
-        className={`w-full py-4 text-base font-medium transition-all duration-300 ${
-          selfAuthDone
-            ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-            : "glass hover:bg-secondary/80"
-        }`}
-      >
-        <Shield className="mr-3 w-5 h-5" />
-        {selfAuthDone ? "Identity Verified" : showQR ? "Hide QR" : "Verify Identity"}
-        {selfAuthDone && <CheckCircle className="ml-3 w-5 h-5" />}
-      </Button>
-
         <SelfQR
     address={address ?? "0x0000000000000000000000000000000000000000"}
   />
