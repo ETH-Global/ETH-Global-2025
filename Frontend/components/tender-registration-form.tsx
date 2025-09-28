@@ -170,53 +170,7 @@ export function TenderRegistrationForm() {
               />
             </div>
 
-            {/* Key Features */}
-            <div className="space-y-3">
-              <Label className="flex items-center space-x-2 text-sm font-medium">
-                <Star className="h-4 w-4 text-primary" />
-                <span>Key Features</span>
-              </Label>
-
-              <div className="flex space-x-2">
-                <Input
-                  type="text"
-                  placeholder="Add a key feature"
-                  value={newFeature}
-                  onChange={(e) => setNewFeature(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyFeature())}
-                  className="bg-background border-border focus:border-primary focus:ring-primary/30"
-                />
-                <Button
-                  type="button"
-                  onClick={addKeyFeature}
-                  size="sm"
-                  className="bg-primary text-primary-foreground hover:opacity-90 pulse-glow"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {formData.keyFeatures.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {formData.keyFeatures.map((feature, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="bg-secondary text-secondary-foreground flex items-center space-x-1"
-                    >
-                      <span>{feature}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeKeyFeature(feature)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
+            
 
             {/* Submit Button */}
             <Button
