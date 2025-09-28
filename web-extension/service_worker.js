@@ -68,7 +68,7 @@ async function collectAndSendAllData(tabId, url) {
       timestamp: Date.now(),
       url: url,
       metadata: metadata.meta.description ? metadata.meta.description : "",
-      geolocation: geolocationData,
+      geolocation: geolocationData ? geolocationData : "",
     };
 
     console.log("Sending payload to API:", payload);
