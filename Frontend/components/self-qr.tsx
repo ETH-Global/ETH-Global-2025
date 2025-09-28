@@ -6,6 +6,7 @@ import {
 } from "@selfxyz/qrcode";
 import "dotenv/config";
 import SelfQRcodeWrapper from "@selfxyz/qrcode"
+import { useRouter } from "next/navigation";
 
 // ✅ Types
 interface SelfAppConfig {
@@ -40,7 +41,7 @@ type VerificationPageProps = {
 export default function VerificationPage({ address }: VerificationPageProps) {
   // 1. State to hold the configuration object for the QR code
   const [selfApp, setSelfApp] = useState<any>(null);
-
+  const router = useRouter()
   // 2. This effect runs once to build the verification configuration
 
 
@@ -79,13 +80,15 @@ export default function VerificationPage({ address }: VerificationPageProps) {
   const handleSuccessfulVerification = (attestation: Attestation) => {
     console.log("✅ Verification Successful!", attestation);
     // NEXT STEP: Send 'attestation' to your backend
-    console.log("Attestation - ",attestation)
+    console.log("Attestation - ", attestation)
+    router.push("/")
   };
 
   // 4. This function is called ONLY on failed verification
   const handleFailedVerification = () => {
     console.log("❌ Verification Failed!");
     alert("Verification failed. Please try again.");
+    router.push("/signup")
   };
 
   return (

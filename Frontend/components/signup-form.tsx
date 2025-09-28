@@ -58,6 +58,7 @@ export default function SignupForm() {
   const [selfAuthDone, setSelfAuthDone] = useState<boolean>(false)
   const [isConnecting, setIsConnecting] = useState<boolean>(false)
   const [mounted, setMounted] = useState(false)
+  const [showQR, setShowQR] = useState(false);
   const router = useRouter()
 
   useEffect(() => {
@@ -106,24 +107,8 @@ export default function SignupForm() {
 
   const handleSelfAuth = (): void => {
     setSelfAuthDone(true)
+    setShowQR((prev) => !prev);
     setStatus("Identity verification completed! 🔐")
-  }
-
-  const handleSignup = (): void => {
-    if (!address) {
-      setStatus("⚠️ Please connect your MetaMask wallet first.")
-      return
-    }
-    if (!selfAuthDone) {
-      setStatus("⚠️ Please complete identity verification.")
-      return
-    }
-    console.log("Signing up with:", { address, selfAuthDone })
-    setStatus("🎉 Welcome to DataVault! Redirecting to login...")
-
-    setTimeout(() => {
-      router.push("/login")
-    }, 2000)
   }
 
   return (
@@ -138,7 +123,6 @@ export default function SignupForm() {
 
       {mounted && <ParticleField />}
 
-      <SelfQR address={address??"0x0000000000000000000000000000000000000000"} />
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
         {/* Header */}
@@ -170,10 +154,10 @@ export default function SignupForm() {
                 onClick={connectWallet}
                 disabled={isConnecting || !!address}
                 className={`w-full py-4 text-base font-medium transition-all duration-300 ${
-                    address
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "bg-primary hover:bg-primary/90 pulse-glow"
-                }`}
+                  address
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "bg-primary hover:bg-primary/90 pulse-glow"
+                  }`}
               >
                 <Wallet className="mr-3 w-5 h-5" />
                 {isConnecting ? "Connecting..." : address ? "Wallet Connected" : "Connect MetaMask"}
@@ -187,31 +171,27 @@ export default function SignupForm() {
               )}
             </div>
 
-            <div className="space-y-3">
-              <Button
-                onClick={handleSelfAuth}
-                disabled={!address || selfAuthDone}
-                variant="secondary"
-                className={`w-full py-4 text-base font-medium transition-all duration-300 ${
-                  selfAuthDone
-                    ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-                    : "glass hover:bg-secondary/80"
-                }`}
-              >
-                <Shield className="mr-3 w-5 h-5" />
-                {selfAuthDone ? "Identity Verified" : "Verify Identity"}
-                {selfAuthDone && <CheckCircle className="ml-3 w-5 h-5" />}
-              </Button>
-            </div>
+    <div className="space-y-3">
+      <Button
+        onClick={handleSelfAuth}
+        disabled={!address || selfAuthDone}
+        variant="secondary"
+        className={`w-full py-4 text-base font-medium transition-all duration-300 ${
+          selfAuthDone
+            ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
+            : "glass hover:bg-secondary/80"
+        }`}
+      >
+        <Shield className="mr-3 w-5 h-5" />
+        {selfAuthDone ? "Identity Verified" : showQR ? "Hide QR" : "Verify Identity"}
+        {selfAuthDone && <CheckCircle className="ml-3 w-5 h-5" />}
+      </Button>
 
-            <Button
-              onClick={handleSignup}
-              disabled={!address || !selfAuthDone}
-              className="w-full py-4 text-base font-semibold bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 transition-all duration-300 pulse-glow"
-            >
-              <Zap className="mr-3 w-5 h-5" />
-              Complete Registration
-            </Button>
+        <SelfQR
+    address={address ?? "0x0000000000000000000000000000000000000000"}
+  />
+        
+    </div>
 
             {status && (
               <div className="glass p-4 rounded-lg text-center">
