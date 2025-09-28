@@ -81,6 +81,18 @@ CREATE TABLE user_secrets (
     blob_ids TEXT[] DEFAULT '{}' -- Array of CIDs from Lighthouse
 );
 ```
+## Steps to run the backend
+```
+> cd Backend
+> npm run dev
+```
+
+## Steps to run the frontend
+```
+> cd Frontend
+> npm i
+> npm run dev
+```
 
 ## Features Enabled
 
