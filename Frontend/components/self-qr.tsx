@@ -5,7 +5,7 @@ import {
   countries,
 } from "@selfxyz/qrcode";
 import "dotenv/config";
-import {SelfQRcodeWrapper} from "@selfxyz/qrcode"
+import SelfQRcodeWrapper from "@selfxyz/qrcode"
 import { useRouter } from "next/navigation";
 
 // ✅ Types
