@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Plus, X, Building2, Clock, DollarSign, FileText, Star } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { registerNewTenderRPC } from "@/ethers/newTender"; //
 
 export interface Tender {
   id: string
@@ -51,43 +52,107 @@ export function TenderRegistrationForm() {
     }))
   }
 
+  //goyal's code
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault()
+  //   setIsSubmitting(true)
+
+  //   try {
+  //     const newTender: Tender = {
+  //       id: Date.now().toString(),
+  //       ...formData,
+  //       createdAt: new Date().toISOString(),
+  //     }
+
+  //     const existingTenders = JSON.parse(localStorage.getItem("tenders") || "[]")
+  //     const updatedTenders = [...existingTenders, newTender]
+  //     localStorage.setItem("tenders", JSON.stringify(updatedTenders))
+
+  //     setFormData({
+  //       name: "",
+  //       time: "",
+  //       rate: "",
+  //       description: "",
+  //       keyFeatures: [],
+  //     })
+
+  //     toast({
+  //       title: "Tender Registered Successfully",
+  //       description: "Your tender has been added to the system.",
+  //     })
+  //   } catch (error) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to register tender. Please try again.",
+  //       variant: "destructive",
+  //     })
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
+
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+    e.preventDefault();
+    setIsSubmitting(true);
 
     try {
-      const newTender: Tender = {
-        id: Date.now().toString(),
-        ...formData,
-        createdAt: new Date().toISOString(),
+      // Parse inputs
+      const durationMinutes = parseInt(formData.time); // minutes input
+      if (isNaN(durationMinutes) || durationMinutes <= 0) {
+        throw new Error("Duration must be a positive number of minutes");
       }
 
-      const existingTenders = JSON.parse(localStorage.getItem("tenders") || "[]")
-      const updatedTenders = [...existingTenders, newTender]
-      localStorage.setItem("tenders", JSON.stringify(updatedTenders))
+      const stakeEth = formData.rate; // ETH stake, e.g., "0.05"
 
+      // Optional: Add inputs for min/max participants
+      const minParticipants = 2; // can be made dynamic
+      const maxParticipants = 10; // can be made dynamic
+
+      // Call the blockchain RPC function to deploy tender
+      const tenderAddress = await registerNewTenderRPC(
+        durationMinutes,
+        minParticipants,
+        maxParticipants,
+        stakeEth
+      );
+
+      console.log("Tender deployed at:", tenderAddress);
+
+      // Save tender locally (optional)
+      const newTender: Tender = {
+        id: tenderAddress, // use contract address as unique ID
+        ...formData,
+        createdAt: new Date().toISOString(),
+      };
+      const existingTenders = JSON.parse(localStorage.getItem("tenders") || "[]");
+      localStorage.setItem("tenders", JSON.stringify([...existingTenders, newTender]));
+
+      // Reset form
       setFormData({
         name: "",
         time: "",
         rate: "",
         description: "",
         keyFeatures: [],
-      })
+      });
 
       toast({
         title: "Tender Registered Successfully",
-        description: "Your tender has been added to the system.",
-      })
-    } catch (error) {
+        description: `Tender deployed on-chain at ${tenderAddress}`,
+      });
+    } catch (error: any) {
+      console.error(error);
       toast({
         title: "Error",
-        description: "Failed to register tender. Please try again.",
+        description: error.message || "Failed to deploy tender",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
+
 
   return (
     <div className="max-w-2xl mx-auto animate-fadeIn">
