@@ -71,15 +71,155 @@ LIGHTHOUSE_PRIVATE_KEY=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567
 
 ### 5. Database Schema
 
-Ensure your Supabase `user_secrets` table has the correct structure:
-
 ```sql
-CREATE TABLE user_secrets (
-    user_id BIGINT PRIMARY KEY,
-    eth_address TEXT NOT NULL,
-    symmetric_key TEXT,
-    blob_ids TEXT[] DEFAULT '{}' -- Array of CIDs from Lighthouse
+-- ----------------------------------------------------
+-- 1. USER SECRETS TABLE (The User Registry & Metadata)
+-- ----------------------------------------------------
+-- Note: 'user_id' is BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY for sequential IDs.
+CREATE TABLE IF NOT EXISTS user_secrets (
+    user_id TEXT PRIMARY KEY,
+    eth_address TEXT UNIQUE NOT NULL,
+    symmetric_key TEXT NOT NULL,
+    blob_ids TEXT[] DEFAULT '{}'::text[] NOT NULL
 );
+
+-- ----------------------------------------------------
+-- 2. EMBEDDINGS TABLE (The Search Index)
+-- ----------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.embeddings (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  -- CRITICAL FIX: Foreign key column name must be consistent with the referenced column.
+  user_id TEXT NOT NULL REFERENCES user_secrets(user_id),
+  embedding vector (768) NOT NULL
+);
+
+-- ----------------------------------------------------
+-- 3. USER DATA BUFFER TABLE (The Staging Log)
+-- ----------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_data_buffer (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    -- CRITICAL FIX: Changed column name from 'uid' to 'user_id' for consistency.
+    user_id TEXT NOT NULL REFERENCES user_secrets(user_id),
+    record_json JSONB[] NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- ----------------------------------------------------
+-- 4. INDEXES
+-- ----------------------------------------------------
+
+-- Index for filtering by user_id
+CREATE INDEX IF NOT EXISTS idx_embeddings_user_id
+ON public.embeddings (user_id);
+
+-- Vector similarity index (IVFFlat with cosine distance)
+CREATE INDEX IF NOT EXISTS idx_embeddings_embedding
+ON public.embeddings
+USING ivfflat (embedding vector_cosine_ops)
+WITH (lists = 100);
+
+-- Refresh statistics for pgvector
+ANALYZE public.embeddings;
+
+-- ----------------------------------------------------
+-- 5. ROW LEVEL SECURITY (RLS) & POLICY CLEANUP
+-- ----------------------------------------------------
+
+DROP POLICY IF EXISTS "Allow service key inserts" ON public.embeddings;
+DROP POLICY IF EXISTS "Allow service key select" ON public.embeddings;
+
+-- Enable RLS
+ALTER TABLE public.embeddings ENABLE ROW LEVEL SECURITY;
+
+-- RLS: Policy to allow service key to insert vectors (used by the Express backend)
+-- We grant to 'service_role', assuming the Express backend uses the service key.
+-- CREATE POLICY "Allow service key inserts"
+-- ON public.embeddings
+-- FOR INSERT
+-- TO anon, authenticated
+-- WITH CHECK (true);
+
+CREATE POLICY "Allow service key inserts"
+ON public.embeddings
+FOR INSERT
+TO anon, authenticated
+WITH CHECK (true);
+
+-- RLS: Policy to allow selecting only embeddings belonging to the current user.
+-- This assumes the front-end user's JWT contains their auth.uid(), which we map to user_secrets(user_id).
+-- For simple service access, we'll keep it open for the service role.
+CREATE POLICY "Allow service key select"
+ON public.embeddings
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
+-- ----------------------------------------------------
+-- 6. RPC FUNCTION
+-- ----------------------------------------------------
+
+-- Function to select UIDs whose buffer is full
+CREATE OR REPLACE FUNCTION get_full_buffers(threshold integer)
+RETURNS SETOF BIGINT
+LANGUAGE sql
+AS $$
+    -- FIX: Removed the redundant table prefix to avoid the 42703 error.
+    -- The column 'user_id' is unambiguous as it is the only table in the FROM clause.
+    SELECT user_id
+    FROM user_data_buffer
+    GROUP BY user_id
+    HAVING COUNT(*) >= threshold;
+$$;
+
+-- get similar vectors (Used by companies to find matching context)
+CREATE OR REPLACE FUNCTION public.match_embeddings (
+  -- FIX: Changed p_user_id from VARCHAR to BIGINT to match schema
+  p_user_id BIGINT,
+  p_embedding vector (768),
+  p_match_threshold double precision,
+  p_match_count integer
+)
+RETURNS table (
+  id bigint,
+  created_at timestamp with time zone,
+  -- FIX: Changed user_id return type from VARCHAR to BIGINT
+  user_id BIGINT, 
+  embedding vector (768),
+  -- Changed 'similarity' output column to 'distance' and operator to '<=>' (cosine distance)
+  distance double precision
+)
+LANGUAGE sql STABLE AS $$
+  -- Using <=> for cosine distance search, which uses the ivfflat index created with vector_cosine_ops
+  SELECT e.id,
+         e.created_at,
+         e.user_id,
+         e.embedding,
+         (e.embedding <=> p_embedding) AS distance
+  FROM public.embeddings e
+  WHERE e.user_id = p_user_id
+    -- Check if distance is below the threshold (lower distance means higher similarity)
+    AND (e.embedding <=> p_embedding) <= p_match_threshold 
+  ORDER BY e.embedding <=> p_embedding
+  LIMIT p_match_count;
+$$;
+
+
+-- add vectors in bulk (Used by the Express backend to insert after data intake)
+CREATE OR REPLACE FUNCTION public.insert_embeddings_bulk (
+  -- FIX: Changed p_user_id from VARCHAR to BIGINT to match schema
+  p_user_id BIGINT,
+  p_vectors vector (768)[]
+)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  -- Insert into public.embeddings using the user_id and unnesting the vector array
+  INSERT INTO public.embeddings (user_id, embedding)
+  SELECT p_user_id, v
+  FROM unnest(p_vectors) AS v;
+END;
+$$;
 ```
 ## Steps to run the backend
 ```
