@@ -1,11 +1,26 @@
 const toggleSlider = document.getElementById("power-button");
+const connectionStatus = document.getElementById("connection-status");
+
+function updateConnectionStatus(isConnected) {
+  if (isConnected) {
+    connectionStatus.textContent = "You are connected";
+    connectionStatus.classList.remove("disconnected");
+  } else {
+    connectionStatus.textContent = "You are disconnected";
+    connectionStatus.classList.add("disconnected");
+  }
+}
+
 
 chrome.storage.local.get(["isAutoScanEnabled"], (result) => {
-  toggleSlider.checked = !!result.isAutoScanEnabled;
+  const isEnabled = !!result.isAutoScanEnabled;
+  toggleSlider.checked = isEnabled;
+  updateConnectionStatus(isEnabled);
 });
 
 toggleSlider.addEventListener("change", () => {
   const isEnabled = toggleSlider.checked;
+  updateConnectionStatus(isEnabled); // Update status on change
 
   if (isEnabled) {
     console.log('Requesting geolocation permission...');
@@ -18,6 +33,7 @@ toggleSlider.addEventListener("change", () => {
         console.error('Geolocation error:', error.message);
         alert('Geolocation permission is required to enable auto-scanning. Please allow location access.');
         toggleSlider.checked = false;
+        updateConnectionStatus(false); // Revert status if permission denied
         enableScanning(false);
       }
     );
@@ -38,6 +54,8 @@ function enableScanning(isEnabled) {
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "local" && changes.isAutoScanEnabled) {
-    toggleSlider.checked = !!changes.isAutoScanEnabled.newValue;
+    const isEnabled = !!changes.isAutoScanEnabled.newValue;
+    toggleSlider.checked = isEnabled;
+    updateConnectionStatus(isEnabled);
   }
 });
