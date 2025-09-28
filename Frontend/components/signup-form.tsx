@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Database, Shield, CheckCircle, Wallet, Zap, ArrowLeft } from "lucide-react"
-import SelfQR from "@/components/self-qr";
+import SelfQR from "@/components/self-qr"
 import { useRouter } from "next/navigation"
 
 const Canvas = dynamic(() => import("@react-three/fiber").then((mod) => mod.Canvas), {
@@ -53,68 +53,133 @@ function ParticleField() {
 }
 
 export default function SignupForm() {
-  const [address, setAddress] = useState<string | null>(null)
+  const [address, setAddress] = useState<string>("")
   const [status, setStatus] = useState<string>("")
   const [selfAuthDone, setSelfAuthDone] = useState<boolean>(false)
   const [isConnecting, setIsConnecting] = useState<boolean>(false)
   const [mounted, setMounted] = useState(false)
-  const [showQR, setShowQR] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false)
   const router = useRouter()
-  // window.ethereum.autoRefreshOnNetworkChange = false
 
   useEffect(() => {
     setMounted(true)
-
-
-  if (typeof window.ethereum !== "undefined") {
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length > 0) {
-        setAddress(accounts[0])
-        setStatus("🔄 Wallet account changed.")
-      } else {
-        setAddress("")
-        setStatus("⚠️ MetaMask is locked or no accounts are connected.")
-      }
-    }
-
-      window.ethereum.on("accountsChanged", handleAccountsChanged)
-
-      // Cleanup on unmount
-      return () => {
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged)
-      }
-    }
   }, [])
 
+  // Only show QR when wallet is connected and verification isn't done yet
+  useEffect(() => {
+    if (address && !selfAuthDone) {
+      setStatus("Please complete identity verification...")
+      // Small delay to ensure smooth UX transition
+      setTimeout(() => {
+        setQrOpen(true)
+      }, 500)
+    }
+  }, [address, selfAuthDone])
 
   const connectWallet = async (): Promise<void> => {
     if (typeof window.ethereum === "undefined") {
-      alert("MetaMask not detected")
+      setStatus("MetaMask not detected. Please install MetaMask to continue.")
       return
     }
 
     setIsConnecting(true)
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const accounts = await provider.send("eth_requestAccounts", [])
-      setAddress(accounts[0] || null)
-      setStatus("Wallet connected successfully! ✨")
+      const provider = new ethers.BrowserProvider(window.ethereum as any)
+      const accounts: string[] = await provider.send("eth_requestAccounts", [])
+      
+      if (accounts.length > 0) {
+        setAddress(accounts[0])
+        setStatus("Wallet connected successfully! ✨ Preparing identity verification...")
+      }
     } catch (err) {
-      console.error(err)
+      console.error("Wallet connection error:", err)
       setStatus("Failed to connect wallet. Please try again.")
+      // Reset states on error
+      setAddress("")
+      setQrOpen(false)
     } finally {
       setIsConnecting(false)
     }
   }
 
-  const handleSelfAuth = (): void => {
+  const disconnectWallet = (): void => {
+    setAddress("")
+    setSelfAuthDone(false)
+    setQrOpen(false)
+    setStatus("Wallet disconnected. Connect again to continue.")
+  }
+
+  type Attestation = {
+    userId?: string
+    token?: string
+    raw?: unknown
+  }
+
+  // This function is called ONLY on successful verification
+  const handleSuccessfulVerification = (attestation: Attestation) => {
+    console.log("✅ Verification Successful!", attestation)
+    console.log("Attestation - ", attestation)
+
     setSelfAuthDone(true)
-    setShowQR((prev) => !prev);
-    setStatus("Identity verification completed! 🔐")
+    setQrOpen(false)
+    setStatus("Identity verification completed! 🔐 Redirecting to login...")
+    
+    setTimeout(() => {
+      router.push("/login")
+    }, 2000)
+  }
+
+  // This function is called ONLY on failed verification
+  const handleFailedVerification = (reason?: string) => {
+    console.log("❌ Verification Failed!")
+    setSelfAuthDone(false)
+    setQrOpen(false)
+    setStatus(`Verification failed${reason ? `: ${reason}` : ""}. Please try again.`)
+  }
+
+  const handleQrVerified = (payload: { userId?: string; token?: string }) => {
+    const attestation: Attestation = { userId: payload.userId, token: payload.token, raw: payload }
+    handleSuccessfulVerification(attestation)
+  }
+
+  const handleQrError = (message: string) => {
+    handleFailedVerification(message)
+  }
+
+  const handleQrClose = () => {
+    setQrOpen(false)
+    if (!selfAuthDone) {
+      setStatus("Identity verification cancelled. Please complete verification to continue.")
+    }
+  }
+
+  const retryVerification = () => {
+    if (address && !selfAuthDone) {
+      setStatus("Starting identity verification...")
+      setQrOpen(true)
+    }
+  }
+
+  const handleSignup = (): void => {
+    if (!address) {
+      setStatus("⚠️ Please connect your MetaMask wallet first.")
+      return
+    }
+    if (!selfAuthDone) {
+      setStatus("⚠️ Please complete identity verification.")
+      return
+    }
+    console.log("Signing up with:", { address, selfAuthDone })
+    setStatus("🎉 Welcome to DataVault! Redirecting to login...")
+
+    setTimeout(() => {
+      router.push("/login")
+    }, 2000)
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden relative">
+      {/* 3D Background Scene - Only render on client */}
       {mounted && (
         <div className="fixed inset-0 z-0">
           <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
@@ -123,8 +188,10 @@ export default function SignupForm() {
         </div>
       )}
 
+      {/* Particle Field - Only render on client */}
       {mounted && <ParticleField />}
 
+      {/* QR Component - ONLY shown when wallet is connected AND verification not done */}
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
         {/* Header */}
@@ -153,14 +220,14 @@ export default function SignupForm() {
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <Button
-                onClick={connectWallet}
-                disabled={isConnecting || !!address}
+                onClick={address ? disconnectWallet : connectWallet}
+                disabled={isConnecting}
                 className={`w-full py-4 text-base font-medium transition-all duration-300 ${
                   address
                   ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                   : "bg-primary hover:bg-primary/90 pulse-glow"
                   }`}
-              >
+                  >
                 <Wallet className="mr-3 w-5 h-5" />
                 {isConnecting ? "Connecting..." : address ? "Wallet Connected" : "Connect MetaMask"}
                 {address && <CheckCircle className="ml-3 w-5 h-5" />}
@@ -169,16 +236,62 @@ export default function SignupForm() {
               {address && (
                 <div className="glass p-3 rounded-lg border border-emerald-500/30">
                   <p className="text-xs text-emerald-400 font-mono break-all">{address}</p>
+                  <Button
+                    onClick={disconnectWallet}
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 text-xs text-muted-foreground hover:text-red-400"
+                    >
+                    Disconnect Wallet
+                  </Button>
                 </div>
               )}
             </div>
 
-    <div className="space-y-3">
-        <SelfQR
-    address={address ?? "0x0000000000000000000000000000000000000000"}
-  />
-        
-    </div>
+              {address && !selfAuthDone && (
+                <SelfQR
+                  address={address}
+                />
+              )}
+            <div className="glass p-3 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className={selfAuthDone ? "w-5 h-5 text-emerald-400" : "w-5 h-5 text-muted-foreground"} />
+                <span className="text-sm">Identity</span>
+              </div>
+              {selfAuthDone ? (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs text-emerald-400">Verified</span>
+                </div>
+              ) : address ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {qrOpen ? "Verifying..." : "Ready to verify"}
+                  </span>
+                  {!qrOpen && (
+                    <Button
+                      onClick={retryVerification}
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs text-primary hover:text-primary/80"
+                    >
+                      Start
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">Connect wallet first</span>
+              )}
+            </div>
+
+            <Button
+              onClick={handleSignup}
+              disabled={!address || !selfAuthDone}
+              className="w-full py-4 text-base font-semibold bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 transition-all duration-300 pulse-glow disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Zap className="mr-3 w-5 h-5" />
+              Complete Registration
+            </Button>
 
             {status && (
               <div className="glass p-4 rounded-lg text-center">
