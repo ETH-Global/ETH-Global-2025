@@ -19,12 +19,12 @@ async function CleansObj(req, res) {
         });
 
         let data = response.data;
-
+        req.uuid = process.env.address;
         // storing embeddings
-        const { data: data2, error: err2 } = await supabase.from('embeddings').insert({
+        const { data: data2, error: err2 } = await supabase.from('embeddings').insert([{
             user_id: req.uuid,
             embedding: data.embedding
-        });
+        }]);
 
         if (err2) {
             console.log(err2);
