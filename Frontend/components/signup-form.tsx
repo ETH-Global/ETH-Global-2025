@@ -60,7 +60,7 @@ export default function SignupForm() {
   const [mounted, setMounted] = useState(false)
   const [showQR, setShowQR] = useState(false);
   const router = useRouter()
-  window.ethereum.autoRefreshOnNetworkChange = false
+  // window.ethereum.autoRefreshOnNetworkChange = false
 
   useEffect(() => {
     setMounted(true)

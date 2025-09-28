@@ -5,7 +5,7 @@ import {
   countries,
 } from "@selfxyz/qrcode";
 import "dotenv/config";
-import SelfQRcodeWrapper from "@selfxyz/qrcode"
+import {SelfQRcodeWrapper} from "@selfxyz/qrcode"
 import { useRouter } from "next/navigation";
 
 // ✅ Types
@@ -101,7 +101,7 @@ export default function VerificationPage({ address }: VerificationPageProps) {
         <SelfQRcodeWrapper
           selfApp={selfApp}
           onSuccess={handleSuccessfulVerification as unknown as () => void}
-          onError={handleFailedVerification}
+          onError={handleFailedVerification as unknown as () => void}
         />
       ) : (
         <div>
