@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body >
+      <body cz-shortcut-listen="true">
         <Suspense fallback={<div>Loading...</div>}>
           <WalletProvider>{children}</WalletProvider>
         </Suspense>
